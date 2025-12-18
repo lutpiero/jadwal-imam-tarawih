@@ -59,7 +59,7 @@ Imam Tarawih Scheduling Application - A modern web application for managing and 
    ```
 
 2. **Access the application**:
-   - Open your browser and navigate to `http://localhost:3000`
+   - Open your browser and navigate to `http://localhost:8000`
    - The server will automatically create the SQLite database on first run
 
 3. **Development mode**:
@@ -68,7 +68,7 @@ Imam Tarawih Scheduling Application - A modern web application for managing and 
    ```
 
 The server will:
-- Serve the application on port 3000 (configurable via PORT environment variable)
+- Serve the application on port 8000 (configurable via PORT environment variable)
 - Create a `jadwal-imam.db` SQLite database file
 - Initialize database tables automatically
 - Provide REST API endpoints for data persistence
@@ -78,11 +78,16 @@ The server will:
 ### For Administrators
 
 1. Click on the **Admin** card on the home page
-2. Go to **Settings** tab and set the Ramadhan starting date
-3. Switch to **Manage Imams** tab
-4. Add Imams by entering their name and quota
-5. Share the generated access code with each Imam
-6. View the schedule in the **View Schedule** tab
+2. Login with default credentials:
+   - Username: `admin`
+   - Password: `admin123`
+   - (Please change these credentials in production)
+3. Go to **Settings** tab and set the Ramadhan starting date
+4. Switch to **Manage Imams** tab
+5. Add Imams by entering their name and quota
+6. Share the generated access code with each Imam
+7. View the schedule in the **View Schedule** tab
+8. Click on booked days in the schedule to remove bookings if needed
 
 ### For Imams
 
@@ -144,20 +149,26 @@ All data is stored persistently in the SQLite database (`jadwal-imam.db`):
 
 ## API Endpoints
 
+### Admin Authentication
+- `POST /api/admin/login` - Admin login (returns session token)
+- `POST /api/admin/logout` - Admin logout (requires authentication)
+- `GET /api/admin/verify` - Verify admin session (requires authentication)
+
 ### Settings
 - `GET /api/settings` - Get all settings
-- `PUT /api/settings/ramadhan-start` - Update Ramadhan start date
+- `PUT /api/settings/ramadhan-start` - Update Ramadhan start date (admin only)
 
 ### Imams
 - `GET /api/imams` - Get all imams
-- `POST /api/imams` - Create new imam
-- `DELETE /api/imams/:id` - Delete imam and their bookings
+- `POST /api/imams` - Create new imam (admin only)
+- `DELETE /api/imams/:id` - Delete imam and their bookings (admin only)
 
 ### Bookings
 - `GET /api/bookings` - Get all bookings
 - `POST /api/bookings` - Create/update bookings for an imam
+- `DELETE /api/bookings/:dateKey` - Delete a booking by date (admin only)
 
-### Authentication
+### Imam Authentication
 - `POST /api/auth/verify` - Verify imam access code
 
 ## Browser Compatibility
@@ -169,20 +180,31 @@ All data is stored persistently in the SQLite database (`jadwal-imam.db`):
 
 ## Security
 
-- Access codes provide authentication for Imams
+### Authentication & Authorization
+- **Admin Authentication**: Secure login with bcrypt password hashing (10 salt rounds)
+- **Session Management**: Token-based authentication with 24-hour session expiration
+- **Rate Limiting**: Login endpoint limited to 5 attempts per 15 minutes per IP
+- **Access Control**: Protected admin endpoints require authentication
+- **Imam Access Codes**: Secure 6-digit codes for imam authentication
 - All data stored persistently in SQLite database
-- RESTful API with proper error handling
-- Static file serving restricted to necessary files only
-- No external dependencies (except Bootstrap CDN for UI)
+- RESTful API with proper error handling and input validation
+
+### Default Admin Credentials
+- **Username**: `admin`
+- **Password**: `admin123`
+- **⚠️ IMPORTANT**: Change the default password immediately after first login in production environments
 
 ### Production Deployment Considerations
 
-For production deployment with high traffic, consider adding:
-- Rate limiting middleware (e.g., express-rate-limit)
-- HTTPS/TLS encryption
-- Environment-based configuration
-- Database backups and monitoring
-- Input validation and sanitization enhancements
+For production deployment with high traffic, consider:
+- **Change default admin password immediately**
+- Implement Redis or database-backed rate limiting for multi-instance deployments
+- Add HTTPS/TLS encryption
+- Use environment variables for configuration
+- Implement regular database backups and monitoring
+- Consider additional password complexity requirements
+- Add session refresh mechanism for long-term use
+- Monitor authentication logs for suspicious activity
 
 ## License
 

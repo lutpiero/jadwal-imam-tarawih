@@ -1,5 +1,6 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const bcrypt = require('bcrypt');
 
 // Database file path
 const DB_PATH = path.join(__dirname, 'jadwal-imam.db');
@@ -49,13 +50,57 @@ function initializeDatabase() {
             )
         `);
 
+        // Admin users table
+        db.run(`
+            CREATE TABLE IF NOT EXISTS admin_users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Admin sessions table
+        db.run(`
+            CREATE TABLE IF NOT EXISTS admin_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                admin_id INTEGER NOT NULL,
+                token TEXT UNIQUE NOT NULL,
+                expires_at DATETIME NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (admin_id) REFERENCES admin_users(id) ON DELETE CASCADE
+            )
+        `);
+
         // Create indexes for performance
         db.run('CREATE INDEX IF NOT EXISTS idx_bookings_date ON bookings(date_key)');
         db.run('CREATE INDEX IF NOT EXISTS idx_bookings_imam ON bookings(imam_id)');
         db.run('CREATE INDEX IF NOT EXISTS idx_imams_access_code ON imams(access_code)');
+        db.run('CREATE INDEX IF NOT EXISTS idx_admin_sessions_token ON admin_sessions(token)');
+
+        // Create default admin user if it doesn't exist
+        createDefaultAdmin();
 
         console.log('Database schema initialized');
     });
+}
+
+// Create default admin user
+async function createDefaultAdmin() {
+    try {
+        const existing = await getQuery('SELECT id FROM admin_users WHERE username = ?', ['admin']);
+        
+        if (!existing) {
+            const passwordHash = await bcrypt.hash('admin123', 10);
+            await runQuery(
+                'INSERT INTO admin_users (username, password_hash) VALUES (?, ?)',
+                ['admin', passwordHash]
+            );
+            console.log('Default admin user created (username: admin). Please change the default password for production use.');
+        }
+    } catch (error) {
+        console.error('Error creating default admin user:', error);
+    }
 }
 
 // Helper function to run queries with promises

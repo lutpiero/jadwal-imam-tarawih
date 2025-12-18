@@ -61,6 +61,24 @@
             background: #f8f9fa;
             border-color: #6c757d;
         }
+        .calendar-day.booked.admin-editable {
+            cursor: pointer;
+            position: relative;
+        }
+        .calendar-day.booked.admin-editable:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(220, 53, 69, 0.3);
+            border-color: #dc3545;
+        }
+        .calendar-day.booked.admin-editable::after {
+            content: "×";
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            color: #dc3545;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
         .calendar-day.selected {
             background: #d4edda;
             border-color: #28a745;
@@ -167,12 +185,42 @@
             <div class="card">
                 <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                     <h3 class="mb-0"><i class="bi bi-shield-lock"></i> Admin Dashboard</h3>
-                    <button class="btn btn-light btn-sm" onclick="showView('roleSelectionView')">
-                        <i class="bi bi-house"></i> Home
-                    </button>
+                    <div>
+                        <button class="btn btn-danger btn-sm" id="adminLogoutBtn" onclick="adminLogout()" style="display: none;">
+                            <i class="bi bi-box-arrow-right"></i> Logout
+                        </button>
+                        <button class="btn btn-light btn-sm" onclick="showView('roleSelectionView'); adminLogout();">
+                            <i class="bi bi-house"></i> Home
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
+                    <!-- Admin Login Form -->
+                    <div id="adminLogin">
+                        <h4 class="mb-3">Admin Login</h4>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="adminUsername" class="form-label">Username</label>
+                                    <input type="text" class="form-control" id="adminUsername" placeholder="Enter username">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="adminPassword" class="form-label">Password</label>
+                                    <input type="password" class="form-control" id="adminPassword" placeholder="Enter password">
+                                </div>
+                                <button class="btn btn-primary" onclick="adminLogin()">
+                                    <i class="bi bi-key"></i> Login
+                                </button>
+                                <div id="adminLoginError" class="alert alert-danger mt-3" style="display: none;">
+                                    Invalid username or password!
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Admin Dashboard Content -->
+                    <div id="adminDashboard" style="display: none;">
+                        <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button">
                                 <i class="bi bi-gear"></i> Settings
@@ -258,6 +306,7 @@
                         <div class="tab-pane fade" id="schedule" role="tabpanel">
                             <h4 class="mb-3">Current Schedule</h4>
                             <div id="adminCalendar" class="calendar-grid"></div>
+                        </div>
                         </div>
                     </div>
                 </div>
