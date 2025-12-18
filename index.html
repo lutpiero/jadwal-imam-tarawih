@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jadwal Imam Tarawih - Imam Scheduling</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px 0;
+        }
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .role-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            height: 100%;
+        }
+        .role-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+        }
+        .role-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .calendar-day {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s ease;
+            min-height: 150px;
+        }
+        .calendar-day.available {
+            cursor: pointer;
+            border-color: #28a745;
+        }
+        .calendar-day.available:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+        }
+        .calendar-day.booked {
+            background: #f8f9fa;
+            border-color: #6c757d;
+        }
+        .calendar-day.selected {
+            background: #d4edda;
+            border-color: #28a745;
+            border-width: 3px;
+        }
+        .hijri-date {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 1.1rem;
+        }
+        .gregorian-date {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        .day-name {
+            color: #495057;
+            font-size: 0.85rem;
+            margin-top: 5px;
+        }
+        .imam-name {
+            color: #28a745;
+            font-weight: bold;
+            margin-top: 8px;
+            font-size: 0.9rem;
+        }
+        .quota-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #667eea;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+        }
+        .access-code-display {
+            font-family: 'Courier New', monospace;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+            letter-spacing: 3px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+        }
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+        #appTitle {
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container main-container">
+        <div class="text-center mb-4">
+            <h1 id="appTitle" class="display-4 mb-2">
+                <i class="bi bi-moon-stars"></i> Jadwal Imam Tarawih
+            </h1>
+            <p class="text-white">Imam Tarawih Scheduling System</p>
+        </div>
+
+        <!-- Role Selection View -->
+        <div id="roleSelectionView" class="view">
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card role-card" onclick="selectRole('admin')">
+                        <div class="card-body text-center p-4">
+                            <i class="bi bi-shield-lock role-icon text-primary"></i>
+                            <h3>Admin</h3>
+                            <p class="text-muted">Manage Imams and Settings</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card role-card" onclick="selectRole('imam')">
+                        <div class="card-body text-center p-4">
+                            <i class="bi bi-person-check role-icon text-success"></i>
+                            <h3>Imam</h3>
+                            <p class="text-muted">Book Your Schedule</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card role-card" onclick="selectRole('public')">
+                        <div class="card-body text-center p-4">
+                            <i class="bi bi-calendar-event role-icon text-info"></i>
+                            <h3>Public</h3>
+                            <p class="text-muted">View Schedule</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin View -->
+        <div id="adminView" class="view" style="display: none;">
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0"><i class="bi bi-shield-lock"></i> Admin Dashboard</h3>
+                    <button class="btn btn-light btn-sm" onclick="showView('roleSelectionView')">
+                        <i class="bi bi-house"></i> Home
+                    </button>
+                </div>
+                <div class="card-body">
+                    <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button">
+                                <i class="bi bi-gear"></i> Settings
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="imams-tab" data-bs-toggle="tab" data-bs-target="#imams" type="button">
+                                <i class="bi bi-people"></i> Manage Imams
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="schedule-tab" data-bs-toggle="tab" data-bs-target="#schedule" type="button">
+                                <i class="bi bi-calendar"></i> View Schedule
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content" id="adminTabContent">
+                        <!-- Settings Tab -->
+                        <div class="tab-pane fade show active" id="settings" role="tabpanel">
+                            <h4 class="mb-3">Ramadhan Settings</h4>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="ramadhanStartDate" class="form-label">Ramadhan Starting Date (Gregorian)</label>
+                                    <input type="date" class="form-control" id="ramadhanStartDate">
+                                    <button class="btn btn-primary mt-3" onclick="saveRamadhanDate()">
+                                        <i class="bi bi-save"></i> Save Date
+                                    </button>
+                                    <div id="dateSuccessMsg" class="alert alert-success mt-3" style="display: none;">
+                                        Date saved successfully!
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Manage Imams Tab -->
+                        <div class="tab-pane fade" id="imams" role="tabpanel">
+                            <h4 class="mb-3">Add New Imam</h4>
+                            <div class="row mb-4">
+                                <div class="col-md-4">
+                                    <label for="imamName" class="form-label">Imam Name</label>
+                                    <input type="text" class="form-control" id="imamName" placeholder="Enter name">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="imamQuota" class="form-label">Quota</label>
+                                    <input type="number" class="form-control" id="imamQuota" value="3" min="1" max="30">
+                                </div>
+                                <div class="col-md-3 d-flex align-items-end">
+                                    <button class="btn btn-success" onclick="addImam()">
+                                        <i class="bi bi-plus-circle"></i> Add Imam
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div id="newImamCode" style="display: none;">
+                                <div class="alert alert-success">
+                                    <h5>Imam Added Successfully!</h5>
+                                    <p>Access Code:</p>
+                                    <div class="access-code-display" id="generatedCode"></div>
+                                    <p class="text-muted">Please share this code with the Imam.</p>
+                                </div>
+                            </div>
+                            
+                            <h4 class="mb-3 mt-4">Registered Imams</h4>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Access Code</th>
+                                            <th>Quota</th>
+                                            <th>Booked</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="imamsList">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- Schedule Tab -->
+                        <div class="tab-pane fade" id="schedule" role="tabpanel">
+                            <h4 class="mb-3">Current Schedule</h4>
+                            <div id="adminCalendar" class="calendar-grid"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Imam View -->
+        <div id="imamView" class="view" style="display: none;">
+            <div class="card">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0"><i class="bi bi-person-check"></i> Imam Booking</h3>
+                    <button class="btn btn-light btn-sm" onclick="showView('roleSelectionView'); logout();">
+                        <i class="bi bi-house"></i> Home
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="imamLogin">
+                        <h4 class="mb-3">Enter Your Access Code</h4>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <input type="text" class="form-control" id="accessCode" placeholder="Enter 6-digit code">
+                                <button class="btn btn-success mt-3" onclick="verifyAccessCode()">
+                                    <i class="bi bi-key"></i> Login
+                                </button>
+                                <div id="loginError" class="alert alert-danger mt-3" style="display: none;">
+                                    Invalid access code!
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="imamBooking" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <h4 class="mb-0">Welcome, <span id="loggedImamName"></span>!</h4>
+                                <p class="text-muted mb-0">
+                                    Selected: <span id="selectedCount">0</span> / <span id="quotaCount">0</span> days
+                                </p>
+                            </div>
+                            <button class="btn btn-primary" id="saveBookingsBtn" onclick="saveBookings()" disabled>
+                                <i class="bi bi-save"></i> Save Bookings
+                            </button>
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> Click on available dates to select them. You can select up to your quota.
+                        </div>
+                        <div id="imamCalendar" class="calendar-grid"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Public View -->
+        <div id="publicView" class="view" style="display: none;">
+            <div class="card">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0"><i class="bi bi-calendar-event"></i> Public Schedule</h3>
+                    <button class="btn btn-light btn-sm" onclick="showView('roleSelectionView')">
+                        <i class="bi bi-house"></i> Home
+                    </button>
+                </div>
+                <div class="card-body">
+                    <h4 class="mb-3">Ramadhan 1446H Tarawih Schedule</h4>
+                    <div id="publicCalendar" class="calendar-grid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
