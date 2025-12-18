@@ -59,7 +59,7 @@ Imam Tarawih Scheduling Application - A modern web application for managing and 
    ```
 
 2. **Access the application**:
-   - Open your browser and navigate to `http://localhost:3000`
+   - Open your browser and navigate to `http://localhost:8000`
    - The server will automatically create the SQLite database on first run
 
 3. **Development mode**:
@@ -68,7 +68,7 @@ Imam Tarawih Scheduling Application - A modern web application for managing and 
    ```
 
 The server will:
-- Serve the application on port 3000 (configurable via PORT environment variable)
+- Serve the application on port 8000 (configurable via PORT environment variable)
 - Create a `jadwal-imam.db` SQLite database file
 - Initialize database tables automatically
 - Provide REST API endpoints for data persistence
@@ -78,11 +78,16 @@ The server will:
 ### For Administrators
 
 1. Click on the **Admin** card on the home page
-2. Go to **Settings** tab and set the Ramadhan starting date
-3. Switch to **Manage Imams** tab
-4. Add Imams by entering their name and quota
-5. Share the generated access code with each Imam
-6. View the schedule in the **View Schedule** tab
+2. Login with default credentials:
+   - Username: `admin`
+   - Password: `admin123`
+   - (Please change these credentials in production)
+3. Go to **Settings** tab and set the Ramadhan starting date
+4. Switch to **Manage Imams** tab
+5. Add Imams by entering their name and quota
+6. Share the generated access code with each Imam
+7. View the schedule in the **View Schedule** tab
+8. Click on booked days in the schedule to remove bookings if needed
 
 ### For Imams
 
