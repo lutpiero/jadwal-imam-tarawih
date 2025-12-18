@@ -38,25 +38,40 @@ Imam Tarawih Scheduling Application - A modern web application for managing and 
 ## Getting Started
 
 ### Requirements
+- Node.js (version 14 or higher)
+- npm (comes with Node.js)
 - A modern web browser (Chrome, Firefox, Safari, Edge)
-- No server or installation needed!
+
+### Installation
+
+1. **Clone or download the repository**
+
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
 
 ### Running the Application
 
-1. **Simple Method**: Open `index.html` directly in your web browser
-
-2. **Local Server Method** (recommended for testing):
+1. **Start the server**:
    ```bash
-   # Using Python 3
-   python3 -m http.server 8000
-   
-   # Then open http://localhost:8000 in your browser
+   npm start
    ```
 
-3. **Using Node.js**:
+2. **Access the application**:
+   - Open your browser and navigate to `http://localhost:3000`
+   - The server will automatically create the SQLite database on first run
+
+3. **Development mode**:
    ```bash
-   npx http-server
+   npm run dev
    ```
+
+The server will:
+- Serve the application on port 3000 (configurable via PORT environment variable)
+- Create a `jadwal-imam.db` SQLite database file
+- Initialize database tables automatically
+- Provide REST API endpoints for data persistence
 
 ## Usage Guide
 
@@ -85,20 +100,65 @@ Imam Tarawih Scheduling Application - A modern web application for managing and 
 
 ## Technical Details
 
-- **Technology**: Pure HTML, CSS, and JavaScript
-- **Framework**: Bootstrap 5
-- **Storage**: Browser localStorage (no backend needed)
+### Backend
+- **Runtime**: Node.js
+- **Framework**: Express.js
+- **Database**: SQLite3
+- **API**: RESTful endpoints
+- **CORS**: Enabled for development
+
+### Frontend
+- **Technology**: HTML, CSS, and JavaScript
+- **UI Framework**: Bootstrap 5
+- **Icons**: Bootstrap Icons
 - **Responsive**: Works on desktop, tablet, and mobile devices
-- **Offline**: Fully functional without internet after initial load
+
+### Database Schema
+
+**Settings Table**:
+- `key`: Setting key (TEXT, PRIMARY KEY)
+- `value`: Setting value (TEXT)
+- `updated_at`: Timestamp (DATETIME)
+
+**Imams Table**:
+- `id`: Unique identifier (INTEGER, AUTO INCREMENT)
+- `name`: Imam name (TEXT)
+- `access_code`: 6-digit access code (TEXT, UNIQUE)
+- `quota`: Number of days allowed (INTEGER)
+- `created_at`: Timestamp (DATETIME)
+
+**Bookings Table**:
+- `id`: Unique identifier (INTEGER, AUTO INCREMENT)
+- `date_key`: Date in ISO format (TEXT, UNIQUE)
+- `imam_id`: Foreign key to imams table (INTEGER)
+- `created_at`: Timestamp (DATETIME)
 
 ## Data Storage
 
-All data is stored locally in your browser using localStorage:
+All data is stored persistently in the SQLite database (`jadwal-imam.db`):
 - Ramadhan starting date
 - Imam information (names, access codes, quotas)
 - Booking assignments
 
-**Note**: Clearing your browser data will erase all scheduling information.
+**Note**: Data persists across server restarts and browser sessions. Back up the `jadwal-imam.db` file to preserve your data.
+
+## API Endpoints
+
+### Settings
+- `GET /api/settings` - Get all settings
+- `PUT /api/settings/ramadhan-start` - Update Ramadhan start date
+
+### Imams
+- `GET /api/imams` - Get all imams
+- `POST /api/imams` - Create new imam
+- `DELETE /api/imams/:id` - Delete imam and their bookings
+
+### Bookings
+- `GET /api/bookings` - Get all bookings
+- `POST /api/bookings` - Create/update bookings for an imam
+
+### Authentication
+- `POST /api/auth/verify` - Verify imam access code
 
 ## Browser Compatibility
 
@@ -109,10 +169,20 @@ All data is stored locally in your browser using localStorage:
 
 ## Security
 
-- Access codes provide basic authentication for Imams
-- All data stored locally in browser
-- No server-side components
-- No external dependencies (except Bootstrap CDN)
+- Access codes provide authentication for Imams
+- All data stored persistently in SQLite database
+- RESTful API with proper error handling
+- Static file serving restricted to necessary files only
+- No external dependencies (except Bootstrap CDN for UI)
+
+### Production Deployment Considerations
+
+For production deployment with high traffic, consider adding:
+- Rate limiting middleware (e.g., express-rate-limit)
+- HTTPS/TLS encryption
+- Environment-based configuration
+- Database backups and monitoring
+- Input validation and sanitization enhancements
 
 ## License
 

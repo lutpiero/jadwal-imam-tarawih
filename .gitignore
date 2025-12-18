@@ -1,0 +1,22 @@
+# Node modules
+node_modules/
+
+# Database file
+jadwal-imam.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment variables
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
