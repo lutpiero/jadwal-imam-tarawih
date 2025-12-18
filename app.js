@@ -56,7 +56,7 @@ function formatGregorianDate(date) {
         day: date.getDate(),
         month: months[date.getMonth()],
         year: date.getFullYear(),
-        dayName: days[getDay()]
+        dayName: days[date.getDay()]
     };
 }
 
