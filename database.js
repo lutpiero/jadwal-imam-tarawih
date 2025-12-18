@@ -1,5 +1,6 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const bcrypt = require('bcrypt');
 
 // Database file path
 const DB_PATH = path.join(__dirname, 'jadwal-imam.db');
@@ -87,7 +88,6 @@ function initializeDatabase() {
 // Create default admin user
 async function createDefaultAdmin() {
     try {
-        const bcrypt = require('bcrypt');
         const existing = await getQuery('SELECT id FROM admin_users WHERE username = ?', ['admin']);
         
         if (!existing) {
@@ -96,7 +96,7 @@ async function createDefaultAdmin() {
                 'INSERT INTO admin_users (username, password_hash) VALUES (?, ?)',
                 ['admin', passwordHash]
             );
-            console.log('Default admin user created (username: admin, password: admin123)');
+            console.log('Default admin user created (username: admin). Please change the default password for production use.');
         }
     } catch (error) {
         console.error('Error creating default admin user:', error);

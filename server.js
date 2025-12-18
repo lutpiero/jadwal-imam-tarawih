@@ -13,6 +13,8 @@ app.use(cors());
 app.use(express.json());
 
 // Rate limiting for login attempts (in-memory store)
+// Note: This in-memory store will not persist across server restarts
+// For production multi-instance deployments, consider using Redis or a database-backed store
 const loginAttempts = new Map();
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOGIN_TIMEOUT = 15 * 60 * 1000; // 15 minutes
@@ -96,13 +98,6 @@ app.post('/api/admin/login', rateLimitLogin, async (req, res) => {
         // Log authentication attempt
         console.log(`Admin login attempt for username: ${username} from IP: ${ip}`);
         
-        // Track login attempt
-        const now = Date.now();
-        if (!loginAttempts.has(ip)) {
-            loginAttempts.set(ip, []);
-        }
-        loginAttempts.get(ip).push(now);
-        
         // Get admin user
         const admin = await getQuery(
             'SELECT id, username, password_hash FROM admin_users WHERE username = ?',
@@ -111,6 +106,12 @@ app.post('/api/admin/login', rateLimitLogin, async (req, res) => {
         
         if (!admin) {
             console.log(`Admin login failed: invalid username for ${username}`);
+            // Track failed login attempt
+            const now = Date.now();
+            if (!loginAttempts.has(ip)) {
+                loginAttempts.set(ip, []);
+            }
+            loginAttempts.get(ip).push(now);
             return res.status(401).json({ error: 'Invalid username or password' });
         }
         
@@ -119,8 +120,17 @@ app.post('/api/admin/login', rateLimitLogin, async (req, res) => {
         
         if (!passwordValid) {
             console.log(`Admin login failed: invalid password for ${username}`);
+            // Track failed login attempt
+            const now = Date.now();
+            if (!loginAttempts.has(ip)) {
+                loginAttempts.set(ip, []);
+            }
+            loginAttempts.get(ip).push(now);
             return res.status(401).json({ error: 'Invalid username or password' });
         }
+        
+        // Clear login attempts on successful login
+        loginAttempts.delete(ip);
         
         // Generate session token
         const token = crypto.randomBytes(32).toString('hex');
