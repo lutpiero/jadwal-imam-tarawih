@@ -20,7 +20,7 @@ const MAX_LOGIN_ATTEMPTS = 5;
 const LOGIN_TIMEOUT = 15 * 60 * 1000; // 15 minutes
 
 function rateLimitLogin(req, res, next) {
-    const ip = req.ip || req.connection.remoteAddress;
+    const ip = req.ip || req.socket.remoteAddress;
     const now = Date.now();
     
     if (loginAttempts.has(ip)) {
@@ -86,7 +86,7 @@ app.get('/app.js', (req, res) => {
 
 // Admin login
 app.post('/api/admin/login', rateLimitLogin, async (req, res) => {
-    const ip = req.ip || req.connection.remoteAddress;
+    const ip = req.ip || req.socket.remoteAddress;
     
     try {
         const { username, password } = req.body;
@@ -129,9 +129,6 @@ app.post('/api/admin/login', rateLimitLogin, async (req, res) => {
             return res.status(401).json({ error: 'Invalid username or password' });
         }
         
-        // Clear login attempts on successful login
-        loginAttempts.delete(ip);
-        
         // Generate session token
         const token = crypto.randomBytes(32).toString('hex');
         const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
@@ -166,6 +163,11 @@ app.post('/api/admin/login', rateLimitLogin, async (req, res) => {
 app.post('/api/admin/logout', requireAdmin, async (req, res) => {
     try {
         const authHeader = req.headers.authorization;
+        
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(400).json({ error: 'Invalid authorization header' });
+        }
+        
         const token = authHeader.substring(7);
         
         await runQuery('DELETE FROM admin_sessions WHERE token = ?', [token]);
