@@ -7,20 +7,37 @@ let selectedDates = [];
 let cachedSettings = null;
 let cachedImams = null;
 let cachedBookings = null;
+let adminToken = null;
+let isAdminAuthenticated = false;
 
 // API Helper Functions
 async function apiRequest(endpoint, options = {}) {
     try {
+        const headers = {
+            'Content-Type': 'application/json',
+            ...options.headers
+        };
+        
+        // Add admin token if authenticated
+        if (adminToken) {
+            headers['Authorization'] = `Bearer ${adminToken}`;
+        }
+        
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             ...options,
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers
-            }
+            headers
         });
         
         if (!response.ok) {
             const error = await response.json();
+            
+            // Handle authentication errors
+            if (response.status === 401 && isAdminAuthenticated) {
+                console.log('Session expired, logging out');
+                adminLogout();
+                alert('Your session has expired. Please login again.');
+            }
+            
             throw new Error(error.error || 'API request failed');
         }
         
@@ -137,6 +154,112 @@ function getDayName(date) {
     return days[date.getDay()];
 }
 
+// Admin Authentication Functions
+async function adminLogin() {
+    const username = document.getElementById('adminUsername').value.trim();
+    const password = document.getElementById('adminPassword').value;
+    
+    if (!username || !password) {
+        alert('Please enter username and password');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username, password })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Login failed');
+        }
+        
+        const data = await response.json();
+        
+        // Store token in sessionStorage
+        adminToken = data.token;
+        sessionStorage.setItem('adminToken', data.token);
+        sessionStorage.setItem('adminUsername', data.username);
+        isAdminAuthenticated = true;
+        
+        // Hide login form, show dashboard
+        document.getElementById('adminLogin').style.display = 'none';
+        document.getElementById('adminDashboard').style.display = 'block';
+        document.getElementById('adminLogoutBtn').style.display = 'inline-block';
+        
+        // Clear password field
+        document.getElementById('adminPassword').value = '';
+        
+        // Load admin data
+        await loadAdminData();
+    } catch (error) {
+        console.error('Admin login error:', error);
+        const errorDiv = document.getElementById('adminLoginError');
+        errorDiv.textContent = error.message;
+        errorDiv.style.display = 'block';
+        setTimeout(() => {
+            errorDiv.style.display = 'none';
+        }, 5000);
+    }
+}
+
+async function adminLogout() {
+    if (isAdminAuthenticated && adminToken) {
+        try {
+            await apiRequest('/api/admin/logout', {
+                method: 'POST'
+            });
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
+    }
+    
+    // Clear token and state
+    adminToken = null;
+    isAdminAuthenticated = false;
+    sessionStorage.removeItem('adminToken');
+    sessionStorage.removeItem('adminUsername');
+    
+    // Show login form, hide dashboard
+    document.getElementById('adminLogin').style.display = 'block';
+    document.getElementById('adminDashboard').style.display = 'none';
+    document.getElementById('adminLogoutBtn').style.display = 'none';
+    
+    // Clear form fields
+    document.getElementById('adminUsername').value = '';
+    document.getElementById('adminPassword').value = '';
+}
+
+async function checkAdminSession() {
+    const storedToken = sessionStorage.getItem('adminToken');
+    
+    if (storedToken) {
+        adminToken = storedToken;
+        
+        try {
+            await apiRequest('/api/admin/verify');
+            isAdminAuthenticated = true;
+            
+            // Hide login form, show dashboard
+            document.getElementById('adminLogin').style.display = 'none';
+            document.getElementById('adminDashboard').style.display = 'block';
+            document.getElementById('adminLogoutBtn').style.display = 'inline-block';
+            
+            return true;
+        } catch (error) {
+            console.log('Stored session invalid');
+            adminLogout();
+            return false;
+        }
+    }
+    
+    return false;
+}
+
 // View Management
 function showView(viewId) {
     document.querySelectorAll('.view').forEach(view => {
@@ -145,11 +268,14 @@ function showView(viewId) {
     document.getElementById(viewId).style.display = 'block';
 }
 
-function selectRole(role) {
+async function selectRole(role) {
     switch(role) {
         case 'admin':
             showView('adminView');
-            loadAdminData();
+            const hasSession = await checkAdminSession();
+            if (hasSession) {
+                await loadAdminData();
+            }
             break;
         case 'imam':
             showView('imamView');
@@ -335,8 +461,12 @@ async function renderAdminCalendar() {
             const imamId = bookings[day.dateKey];
             const imam = imams.find(i => i.id === imamId);
             
+            // Make booked days clickable for admin
+            const bookedClass = imam ? 'booked admin-editable' : '';
+            const clickHandler = imam ? `onclick="removeBooking('${day.dateKey}', '${imam.name}', '${day.hijriDay} ${day.hijriMonth}', '${day.gregorianDay} ${day.gregorianMonth} ${day.gregorianYear}')"` : '';
+            
             return `
-                <div class="calendar-day ${imam ? 'booked' : ''}">
+                <div class="calendar-day ${bookedClass}" ${clickHandler}>
                     <div class="hijri-date">${day.hijriDay} ${day.hijriMonth}</div>
                     <div class="gregorian-date">${day.gregorianDay} ${day.gregorianMonth} ${day.gregorianYear}</div>
                     <div class="day-name">${day.dayName}</div>
@@ -346,6 +476,39 @@ async function renderAdminCalendar() {
         }).join('');
     } catch (error) {
         console.error('Error rendering admin calendar:', error);
+    }
+}
+
+async function removeBooking(dateKey, imamName, hijriDate, gregorianDate) {
+    if (!isAdminAuthenticated) {
+        alert('You must be logged in to remove bookings');
+        return;
+    }
+    
+    const message = `Remove ${imamName} from ${hijriDate} (${gregorianDate})?`;
+    
+    if (!confirm(message)) {
+        return;
+    }
+    
+    try {
+        await apiRequest(`/api/bookings/${dateKey}`, {
+            method: 'DELETE'
+        });
+        
+        // Invalidate caches
+        cachedBookings = null;
+        cachedImams = null;
+        
+        // Refresh views
+        await renderAdminCalendar();
+        await renderImamsList();
+        
+        // Show success message
+        alert('Booking removed successfully!');
+    } catch (error) {
+        console.error('Error removing booking:', error);
+        alert('Failed to remove booking. Please try again.');
     }
 }
 
