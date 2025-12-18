@@ -84,16 +84,23 @@ app.post('/api/imams', async (req, res) => {
             return res.status(400).json({ error: 'Quota must be between 1 and 30' });
         }
 
-        // Generate unique 6-digit access code
+        // Generate unique 6-digit access code with retry limit
         let accessCode;
         let isUnique = false;
+        let retries = 0;
+        const MAX_RETRIES = 100;
         
-        while (!isUnique) {
+        while (!isUnique && retries < MAX_RETRIES) {
             accessCode = Math.floor(100000 + Math.random() * 900000).toString();
             const existing = await getQuery('SELECT id FROM imams WHERE access_code = ?', [accessCode]);
             if (!existing) {
                 isUnique = true;
             }
+            retries++;
+        }
+
+        if (!isUnique) {
+            return res.status(500).json({ error: 'Failed to generate unique access code. Please try again.' });
         }
 
         const result = await runQuery(
@@ -131,10 +138,7 @@ app.delete('/api/imams/:id', async (req, res) => {
             return res.status(404).json({ error: 'Imam not found' });
         }
 
-        // Delete bookings first (due to foreign key)
-        await runQuery('DELETE FROM bookings WHERE imam_id = ?', [imamId]);
-        
-        // Delete imam
+        // Delete imam (CASCADE will automatically delete associated bookings)
         await runQuery('DELETE FROM imams WHERE id = ?', [imamId]);
 
         res.json({ success: true });
