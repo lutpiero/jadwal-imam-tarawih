@@ -1,0 +1,23 @@
+{
+  "name": "jadwal-imam-tarawih",
+  "version": "1.0.0",
+  "description": "Imam Tarawih Scheduling Application with Node.js backend and SQLite database",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "ramadhan",
+    "imam",
+    "tarawih",
+    "scheduling"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "sqlite3": "^5.1.6",
+    "cors": "^2.8.5"
+  }
+}
