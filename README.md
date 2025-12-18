@@ -172,7 +172,17 @@ All data is stored persistently in the SQLite database (`jadwal-imam.db`):
 - Access codes provide authentication for Imams
 - All data stored persistently in SQLite database
 - RESTful API with proper error handling
+- Static file serving restricted to necessary files only
 - No external dependencies (except Bootstrap CDN for UI)
+
+### Production Deployment Considerations
+
+For production deployment with high traffic, consider adding:
+- Rate limiting middleware (e.g., express-rate-limit)
+- HTTPS/TLS encryption
+- Environment-based configuration
+- Database backups and monitoring
+- Input validation and sanitization enhancements
 
 ## License
 

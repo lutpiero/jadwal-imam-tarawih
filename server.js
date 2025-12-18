@@ -9,7 +9,13 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static(__dirname));
+
+// Serve only specific static files (not the entire directory)
+// Note: Rate limiting is not implemented for static files
+// For production deployment with high traffic, consider adding rate limiting middleware
+app.get('/app.js', (req, res) => {
+    res.sendFile(path.join(__dirname, 'app.js'));
+});
 
 // API Routes
 
@@ -250,6 +256,8 @@ app.post('/api/auth/verify', async (req, res) => {
 });
 
 // Serve the main HTML file
+// Note: Rate limiting is not implemented for static files
+// For production deployment with high traffic, consider adding rate limiting middleware
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
