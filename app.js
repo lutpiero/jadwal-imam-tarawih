@@ -822,6 +822,18 @@ async function handleScheduleLockToggle() {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
-    // Show role selection by default
-    showView('roleSelectionView');
+    // Check for URL parameters to support direct linking
+    const urlParams = new URLSearchParams(window.location.search);
+    const role = urlParams.get('role');
+    
+    // Validate role parameter against allowed values
+    const allowedRoles = ['admin', 'imam', 'public'];
+    
+    if (role && allowedRoles.includes(role)) {
+        // Direct navigation based on URL parameter
+        selectRole(role);
+    } else {
+        // Show role selection by default
+        showView('roleSelectionView');
+    }
 });
