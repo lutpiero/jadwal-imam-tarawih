@@ -803,7 +803,7 @@ async function handleScheduleLockToggle() {
         await toggleScheduleLock(newStatus);
         await updateScheduleLockUI();
         
-        // Invalidate all caches to refresh views
+        // Invalidate cache since display logic depends on lock status
         cachedScheduleLockStatus = null;
         
         alert(`Schedule ${action}ed successfully!`);
