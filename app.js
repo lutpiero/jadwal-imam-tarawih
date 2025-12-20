@@ -826,7 +826,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
     const role = urlParams.get('role');
     
-    if (role) {
+    // Validate role parameter against allowed values
+    const allowedRoles = ['admin', 'imam', 'public'];
+    
+    if (role && allowedRoles.includes(role)) {
         // Direct navigation based on URL parameter
         selectRole(role);
     } else {
