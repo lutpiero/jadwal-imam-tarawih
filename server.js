@@ -226,6 +226,44 @@ app.put('/api/settings/ramadhan-start', requireAdmin, async (req, res) => {
     }
 });
 
+// Get schedule lock status
+app.get('/api/settings/schedule-lock', async (req, res) => {
+    try {
+        const setting = await getQuery('SELECT value FROM settings WHERE key = ?', ['scheduleLockedStatus']);
+        const isLocked = setting ? setting.value === 'true' : false;
+        res.json({ isLocked });
+    } catch (error) {
+        console.error('Error fetching schedule lock status:', error);
+        res.status(500).json({ error: 'Failed to fetch schedule lock status' });
+    }
+});
+
+// Toggle schedule lock status (admin only)
+app.put('/api/settings/schedule-lock', requireAdmin, async (req, res) => {
+    try {
+        const { isLocked } = req.body;
+        
+        if (typeof isLocked !== 'boolean') {
+            return res.status(400).json({ error: 'isLocked must be a boolean value' });
+        }
+
+        const value = isLocked ? 'true' : 'false';
+
+        await runQuery(`
+            INSERT INTO settings (key, value, updated_at)
+            VALUES ('scheduleLockedStatus', ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = CURRENT_TIMESTAMP
+        `, [value, value]);
+
+        console.log(`Admin ${req.adminUser.username} ${isLocked ? 'locked' : 'unlocked'} the schedule`);
+
+        res.json({ success: true, isLocked });
+    } catch (error) {
+        console.error('Error updating schedule lock status:', error);
+        res.status(500).json({ error: 'Failed to update schedule lock status' });
+    }
+});
+
 // Get all imams
 app.get('/api/imams', async (req, res) => {
     try {

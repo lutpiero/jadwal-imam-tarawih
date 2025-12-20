@@ -7,6 +7,7 @@ let selectedDates = [];
 let cachedSettings = null;
 let cachedImams = null;
 let cachedBookings = null;
+let cachedScheduleLockStatus = null;
 let adminToken = null;
 let isAdminAuthenticated = false;
 
@@ -113,6 +114,23 @@ async function verifyAccessCodeAPI(accessCode) {
         method: 'POST',
         body: JSON.stringify({ accessCode })
     });
+}
+
+// Schedule Lock Functions
+async function getScheduleLockStatus() {
+    if (cachedScheduleLockStatus === null) {
+        const response = await apiRequest('/api/settings/schedule-lock');
+        cachedScheduleLockStatus = response.isLocked;
+    }
+    return cachedScheduleLockStatus;
+}
+
+async function toggleScheduleLock(isLocked) {
+    await apiRequest('/api/settings/schedule-lock', {
+        method: 'PUT',
+        body: JSON.stringify({ isLocked })
+    });
+    cachedScheduleLockStatus = null; // Invalidate cache
 }
 
 // Hijri Calendar Functions
@@ -295,6 +313,9 @@ async function loadAdminData() {
         if (startDate) {
             document.getElementById('ramadhanStartDate').value = startDate;
         }
+        
+        // Load schedule lock status
+        await updateScheduleLockUI();
         
         // Load Imams list
         await renderImamsList();
@@ -551,6 +572,7 @@ async function renderImamCalendar() {
         
         const bookings = await getBookings();
         const imams = await getImams();
+        const isLocked = await getScheduleLockStatus();
         
         container.innerHTML = days.map(day => {
             const isBooked = bookings[day.dateKey];
@@ -565,6 +587,16 @@ async function renderImamCalendar() {
             
             const bookedImam = isBooked ? imams.find(i => i.id === bookings[day.dateKey]) : null;
             
+            // Show other imam names only if schedule is locked
+            let bookedByDisplay = '';
+            if (isBooked && !isBookedByMe) {
+                if (isLocked) {
+                    bookedByDisplay = `<div class="text-muted mt-2"><small>Booked by ${bookedImam ? bookedImam.name : 'Other'}</small></div>`;
+                } else {
+                    bookedByDisplay = '<div class="text-muted mt-2"><small>Booked</small></div>';
+                }
+            }
+            
             return `
                 <div class="${classes}" onclick="${canSelect ? `toggleDateSelection('${day.dateKey}')` : ''}" 
                      style="${canSelect ? 'cursor: pointer;' : ''}">
@@ -572,7 +604,7 @@ async function renderImamCalendar() {
                     <div class="gregorian-date">${day.gregorianDay} ${day.gregorianMonth} ${day.gregorianYear}</div>
                     <div class="day-name">${day.dayName}</div>
                     ${isBookedByMe ? '<div class="imam-name">Your Slot</div>' : ''}
-                    ${isBooked && !isBookedByMe ? `<div class="text-muted mt-2"><small>Booked by ${bookedImam ? bookedImam.name : 'Other'}</small></div>` : ''}
+                    ${bookedByDisplay}
                 </div>
             `;
         }).join('');
@@ -687,17 +719,30 @@ async function renderPublicCalendar() {
         
         const bookings = await getBookings();
         const imams = await getImams();
+        const isLocked = await getScheduleLockStatus();
         
         container.innerHTML = days.map(day => {
             const imamId = bookings[day.dateKey];
             const imam = imams.find(i => i.id === imamId);
+            
+            // Show imam name only if schedule is locked, otherwise show "Booked"
+            let imamDisplay = '';
+            if (imam) {
+                if (isLocked) {
+                    imamDisplay = `<div class="imam-name">${imam.name}</div>`;
+                } else {
+                    imamDisplay = '<div class="text-muted mt-2"><small>Booked</small></div>';
+                }
+            } else {
+                imamDisplay = '<div class="text-muted mt-2"><small>TBA</small></div>';
+            }
             
             return `
                 <div class="calendar-day ${imam ? 'booked' : ''}">
                     <div class="hijri-date">${day.hijriDay} ${day.hijriMonth}</div>
                     <div class="gregorian-date">${day.gregorianDay} ${day.gregorianMonth} ${day.gregorianYear}</div>
                     <div class="day-name">${day.dayName}</div>
-                    ${imam ? `<div class="imam-name">${imam.name}</div>` : '<div class="text-muted mt-2"><small>TBA</small></div>'}
+                    ${imamDisplay}
                 </div>
             `;
         }).join('');
@@ -705,6 +750,73 @@ async function renderPublicCalendar() {
         console.error('Error rendering public calendar:', error);
         const container = document.getElementById('publicCalendar');
         container.innerHTML = '<div class="alert alert-danger">Failed to load schedule. Please check if the server is running.</div>';
+    }
+}
+
+// Admin Schedule Lock Functions
+async function updateScheduleLockUI() {
+    try {
+        const isLocked = await getScheduleLockStatus();
+        const checkbox = document.getElementById('scheduleLockToggle');
+        const statusBadge = document.getElementById('lockStatusBadge');
+        
+        if (checkbox) {
+            checkbox.checked = isLocked;
+        }
+        
+        if (statusBadge) {
+            if (isLocked) {
+                statusBadge.className = 'badge bg-success ms-2';
+                statusBadge.textContent = 'Locked';
+            } else {
+                statusBadge.className = 'badge bg-warning ms-2';
+                statusBadge.textContent = 'Unlocked';
+            }
+        }
+    } catch (error) {
+        console.error('Error updating schedule lock UI:', error);
+    }
+}
+
+async function handleScheduleLockToggle() {
+    if (!isAdminAuthenticated) {
+        alert('You must be logged in as admin to change lock status');
+        return;
+    }
+    
+    try {
+        const checkbox = document.getElementById('scheduleLockToggle');
+        const newStatus = checkbox.checked;
+        
+        const action = newStatus ? 'lock' : 'unlock';
+        const message = `Are you sure you want to ${action} the schedule?\n\n` +
+            (newStatus 
+                ? 'When locked, all imam names will be visible to everyone.'
+                : 'When unlocked, imam names will be hidden from public and other imams.');
+        
+        if (!confirm(message)) {
+            // Revert checkbox if user cancels
+            checkbox.checked = !newStatus;
+            return;
+        }
+        
+        await toggleScheduleLock(newStatus);
+        await updateScheduleLockUI();
+        
+        // Invalidate cache since display logic depends on lock status
+        cachedScheduleLockStatus = null;
+        
+        alert(`Schedule ${action}ed successfully!`);
+        
+        // Refresh all visible calendars
+        await renderAdminCalendar();
+    } catch (error) {
+        console.error('Error toggling schedule lock:', error);
+        alert('Failed to update schedule lock status. Please try again.');
+        
+        // Revert checkbox on error
+        const checkbox = document.getElementById('scheduleLockToggle');
+        checkbox.checked = !checkbox.checked;
     }
 }
 

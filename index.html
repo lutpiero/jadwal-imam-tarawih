@@ -254,6 +254,39 @@
                                     </div>
                                 </div>
                             </div>
+                            
+                            <hr class="my-4">
+                            
+                            <h4 class="mb-3">
+                                Schedule Lock Control
+                                <span id="lockStatusBadge" class="badge bg-warning ms-2">Unlocked</span>
+                            </h4>
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="alert alert-info">
+                                        <h6 class="alert-heading"><i class="bi bi-info-circle"></i> What does locking the schedule do?</h6>
+                                        <p class="mb-2"><strong>When Unlocked (In Progress):</strong></p>
+                                        <ul class="mb-2">
+                                            <li>Public viewers cannot see imam names (shows "Booked" or "TBA")</li>
+                                            <li>Imams can only see their own bookings (other bookings show as "Booked")</li>
+                                            <li>Admins can always see all imam names</li>
+                                        </ul>
+                                        <p class="mb-2"><strong>When Locked (Complete):</strong></p>
+                                        <ul class="mb-0">
+                                            <li>Everyone can see all imam names for all booked dates</li>
+                                            <li>Full schedule is visible to public and all imams</li>
+                                        </ul>
+                                    </div>
+                                    
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="scheduleLockToggle" 
+                                               onchange="handleScheduleLockToggle()" style="transform: scale(1.5); margin-right: 10px;">
+                                        <label class="form-check-label" for="scheduleLockToggle" style="font-size: 1.1rem; font-weight: 500;">
+                                            <i class="bi bi-lock-fill"></i> Lock Schedule (Mark as Complete)
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         
                         <!-- Manage Imams Tab -->
